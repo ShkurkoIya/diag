@@ -1,0 +1,10 @@
+{
+  "cmake.configureArgs": [
+    "-DCMAKE_BUILD_TYPE=Debug",
+    "-DBUILD_FOR_LINUX=ON",
+    "-DBUILD_JNI_LIB=OFF",
+    "-DUSE_ASN1C_LTE=ON",
+    "-DUSE_ASN1C_UMTS=ON",
+    "-DBUILD_EFS_BROWSE=OFF"
+  ]
+}

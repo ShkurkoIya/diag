@@ -1,0 +1,16 @@
+# Игнорируем папку сборки целиком
+build/
+
+# На всякий случай игнорируем файлы CMake, если запустятся в корне
+CMakeFiles/
+.cmake/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# Игнорируем любые бинарники и библиотеки
+*.a
+*.so
+*.o
+*.exe
