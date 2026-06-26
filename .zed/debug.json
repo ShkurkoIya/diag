@@ -1,0 +1,15 @@
+[
+  {
+    "label": "(lldb) Launch DIAG Scan",
+    "adapter": "CodeLLDB",
+    "request": "launch",
+    "build": {
+      "command": "cmake",
+      "args": ["--build", "build", "-j8"],
+      "cwd": "$ZED_WORKTREE_ROOT",
+    },
+    "program": "$ZED_WORKTREE_ROOT/build/diag_scan_exe",
+    "args": ["/dev/ttyUSB0"],
+    "cwd": "$ZED_WORKTREE_ROOT/cpp",
+  },
+]

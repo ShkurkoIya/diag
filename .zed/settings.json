@@ -1,0 +1,31 @@
+{
+  "languages": {
+    "C++": {
+      "format_on_save": "on",
+      "formatter": {
+        "external": {
+          "command": "clang-format",
+          "arguments": ["-i"],
+        },
+      },
+      "language_servers": ["clangd"],
+    },
+  },
+  "lsp": {
+    "clangd": {
+      "binary": {
+        "path": "clangd",
+        "arguments": [
+          "--background-index",
+          "--clang-tidy",
+          "--compile-commands-dir=build",
+          "--header-insertion=never",
+          "-j=4",
+        ],
+      },
+    },
+  },
+  "file_types": {
+    "YAML": [".clang-tidy", ".clang-format"],
+  },
+}

@@ -1,0 +1,62 @@
+[
+  {
+    "label": "App: Run Normal",
+    "command": "$ZED_WORKTREE_ROOT/build/diag_scan_exe",
+    "use_new_terminal": false,
+  },
+  {
+    "label": "Profile: CPU Hostspots (Callgrind)",
+    "command": "valgrind --tool=callgrind $ZED_WORKTREE_ROOT/build/diag_scan_exe /dev/ttyUSB0",
+    "use_new_terminal": false,
+  },
+  {
+    "label": "Profile: Memory Leaks (Memcheck)",
+    "command": "valgrind --leak-check=full --show-leak-kinds=all ../build/diag_scan_exe /dev/ttyUSB0",
+    "use_new_terminal": false,
+  },
+  {
+    "label": "CMake: Configure Project",
+    "command": "cmake -B build -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug -DBUILD_FOR_LINUX=ON -DBUILD_JNI_LIB=OFF -DUSE_ASN1C_LTE=ON -DUSE_ASN1C_UMTS=ON -DBUILD_EFS_BROWSE=OFF -DCMAKE_C_FLAGS=\"-include stddef.h -include sys/types.h\" -DCMAKE_CXX_FLAGS=\"-include stddef.h -include sys/types.h\" && ln -sf build/compile_commands.json .",
+    "use_new_terminal": false,
+  },
+  {
+    "label": "CMake: Build All",
+    "command": "cmake --build build -j$(nproc)",
+    "use_new_terminal": false,
+  },
+  {
+    "label": "CMake: Clean Rebuild",
+    "command": "rm -rf build && rm -f compile_commands.json && cmake -B build -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug -DBUILD_FOR_LINUX=ON -DBUILD_JNI_LIB=OFF -DUSE_ASN1C_LTE=ON -DUSE_ASN1C_UMTS=ON -DBUILD_EFS_BROWSE=OFF -DCMAKE_C_FLAGS=\"-include stddef.h -include sys/types.h\" -DCMAKE_CXX_FLAGS=\"-include stddef.h -include sys/types.h\" && cmake --build build -j$(nproc) && ln -sf build/compile_commands.json .",
+    "use_new_terminal": false,
+  },
+  {
+    "label": "CMake: Clear Build Folder",
+    "command": "cmake --build build --target clean",
+    "use_new_terminal": false,
+  },
+  {
+    "label": "CMake: Pack Release (CPack)",
+    "command": "cd build && cpack",
+    "use_new_terminal": false,
+  },
+  {
+    "label": "Testing: Run GoogleTest / CTest",
+    "command": "cd build && ctest --output-on-failure -j$(nproc)",
+    "use_new_terminal": false,
+  },
+  {
+    "label": "Linter: Run Clang-Tidy (Check All)",
+    "command": "FILES=$(find . -type d \\( -name build -o -name .zed -o -name .git \\) -prune -o -type f \\( -name '*.cpp' -o -name '*.cc' \\) -print) && if [ -n \"$FILES\" ]; then echo \"$FILES\" | xargs clang-tidy -p build; else echo \"Исходные файлы не найдены\"; fi",
+    "use_new_terminal": false,
+  },
+  {
+    "label": "Formatter: Format Code (Clang-Format)",
+    "command": "find . -type d \\( -name build -o -name .zed -o -name .git \\) -prune -o -type f \\( -name '*.cpp' -o -name '*.h' -o -name '*.hpp' -o -name '*.cc' \\) -print0 | xargs -0 -r clang-format -i",
+    "use_new_terminal": false,
+  },
+  {
+    "label": "Docs: Generate Doxygen",
+    "command": "cmake --build build --target doc",
+    "use_new_terminal": false,
+  },
+]
