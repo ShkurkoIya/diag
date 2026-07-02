@@ -59,5 +59,6 @@ bool HdlcSerializer::DeserializeByte(uint8_t byte, uint8_t *clean_buf, size_t &c
             }
         }
     }
+
     return false;
 }

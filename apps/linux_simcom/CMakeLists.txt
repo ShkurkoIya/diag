@@ -1,14 +1,16 @@
 cmake_minimum_required(VERSION 3.22)
-project(diag_scan CXX)
 
+# УБРАЛИ project(diag_scan_linux CXX), так как компиляторы уже подняты в корне!
+
+# Ищем системные потоки (POSIX Threads)
 find_package(Threads REQUIRED)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Таргет: Исполняемый файл Linux-демона
 # ─────────────────────────────────────────────────────────────────────────────
-add_executable(${PROJECT_NAME})
+add_executable(diag_scan_exe)
 
-# Явно привязываем исходники по твоей структуре слоев (core, io, protocol)
+# Привязываем исходники приложения согласно структуре слоев (core, io, protocol)
 target_sources(diag_scan_exe PRIVATE
     main.cpp
 
@@ -23,31 +25,28 @@ target_sources(diag_scan_exe PRIVATE
     protocol/hdlc_stream_parser.cpp
 )
 
-# Настраиваем инклуды.
-# Для исполняемого файла они ВСЕГДА PRIVATE, так как от него никто не наследуется.
-target_include_directories(${PROJECT_NAME} PRIVATE
+# Настраиваем локальные инклуды приложения
+target_include_directories(diag_scan_exe PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/core
     ${CMAKE_CURRENT_SOURCE_DIR}/io
     ${CMAKE_CURRENT_SOURCE_DIR}/protocol
 )
 
-# Задаем стандарты и флаги сборки локально для приложения
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
-target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -O2)
+# Стандарты и флаги компиляции
+target_compile_features(diag_scan_exe PRIVATE cxx_std_17)
+target_compile_options(diag_scan_exe PRIVATE -Wall -Wextra -O2)
 
-# Прокидываем дефайн режима TTY локально
-target_compile_definitions(${PROJECT_NAME} PRIVATE LINUX_TTY_MODE=1)
+# Локальный дефайн режима работы через TTY
+target_compile_definitions(diag_scan_exe PRIVATE LINUX_TTY_MODE=1)
 
-# Линкуем зависимости.
-# diag_parsers_core передаст сюда ВСЕ свои PUBLIC инклуды (включая protocol/)
-# и автоматически прокинет макросы вроде FEATURE_GSM или USE_ASN1C_LTE.
-target_link_libraries(${PROJECT_NAME} PRIVATE
-    diag_parsers_core
+# Линкуем зависимости
+target_link_libraries(diag_scan_exe PRIVATE
+    observer::core   # Автоматически прокинет инклуды парсеров и дефайны
     Threads::Threads
 )
 
-# Задаем свойства бинарника: чистый исполняемый файл Linux без префиксов и .so
+# Задаем свойства бинарника: чистый исполняемый файл Linux без префиксов
 set_target_properties(diag_scan_exe PROPERTIES
     OUTPUT_NAME "diag_scan_exe"
     PREFIX ""

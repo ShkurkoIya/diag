@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(observer_monorepo NONE)
+project(observer_monorepo C CXX)
 
 # Глобальные опции платформ
 option(BUILD_FOR_LINUX   "Build natively for Linux (SIMCom TTY Daemon)" ON)
@@ -34,7 +34,6 @@ else()
   option(USE_ASN1C_LTE  "Build with asn1c-generated LTE RRC decoder" OFF)
   option(USE_ASN1C_UMTS "Build with asn1c-generated UMTS/WCDMA RRC decoder" OFF)
 endif()
-
 
 option(USE_GSM   "Build with GSM (2G) parser module" ${USE_GSM_DEFAULT})
 option(USE_WCDMA "Build with WCDMA (3G) parser module" ${USE_WCDMA_DEFAULT})
