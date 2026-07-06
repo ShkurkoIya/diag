@@ -3,6 +3,324 @@
 #include <cstdint>
 #include <cstddef>
 
+namespace observer::diag {
+    /**
+     * @brief Идентификаторы команд (Command IDs / Sub-system IDs) протокола Qualcomm DIAG
+     */
+    namespace cmd {
+        constexpr uint8_t VERNO               = 0x00; // Версия ПО / Железа
+        constexpr uint8_t ESN                 = 0x01; // Запрос ESN электроники
+        constexpr uint8_t STATUS              = 0x0C; // Статус DMSS
+        constexpr uint8_t LOGMASK             = 0x0F; // Конфигурация маски логирования
+        constexpr uint8_t LOG                 = 0x10; // Поток бинарных логов эфира
+        constexpr uint8_t NV_PEEK             = 0x11; // Чтение NV-памяти
+        constexpr uint8_t NV_POKE             = 0x12; // Запись в NV-память
+        constexpr uint8_t BAD_CMD             = 0x13; // Ответ: Невалидная команда
+        constexpr uint8_t BAD_PARM            = 0x14; // Ответ: Невалидный параметр
+        constexpr uint8_t BAD_LEN             = 0x15; // Ответ: Невалидная длина
+        constexpr uint8_t BAD_MODE            = 0x18; // Запрещено в текущем режиме
+        constexpr uint8_t TAGRAPH             = 0x19; // Метрики мощности TA
+        constexpr uint8_t MARKOV              = 0x1A; // Статистика Маркова
+        constexpr uint8_t MARKOV_RESET        = 0x1B; // Сброс статистики Маркова
+        constexpr uint8_t DIAG_VER            = 0x1C; // Версия DIAG
+        constexpr uint8_t TS                  = 0x1D; // Запрос временной метки
+        constexpr uint8_t TA_PARM             = 0x1E; // Настройка параметров TA
+        constexpr uint8_t MSG                 = 0x1F; // Отчет сообщений MSG
+        constexpr uint8_t HS_KEY              = 0x20; // Эмуляция нажатия клавиш
+        constexpr uint8_t HS_LOCK             = 0x21; // Блокировка интерфейса
+        constexpr uint8_t HS_SCREEN           = 0x22; // Запрос экрана
+        constexpr uint8_t PARM_SET            = 0x24; // Загрузка параметров
+        constexpr uint8_t NV_READ             = 0x26; // Чтение NV-ячейки
+        constexpr uint8_t NV_WRITE            = 0x27; // Запись в NV-ячейку
+        constexpr uint8_t CONTROL             = 0x29; // Переключение Online/Offline
+        constexpr uint8_t ERR_READ            = 0x2A; // Чтение лога ошибок
+        constexpr uint8_t ERR_CLEAR           = 0x2B; // Очистка лога ошибок
+        constexpr uint8_t SER_RESET           = 0x2C; // Сброс счетчика SER
+        constexpr uint8_t SER_REPORT          = 0x2D; // Отчет счетчика SER
+        constexpr uint8_t TEST                = 0x2E; // Запуск теста
+        constexpr uint8_t GET_DIPSW           = 0x2F; // Чтение DIP-переключателей
+        constexpr uint8_t SET_DIPSW           = 0x30; // Запись DIP-переключателей
+        constexpr uint8_t VOC_PCM_LB          = 0x31; // Петля Вокодера PCM
+        constexpr uint8_t VOC_PKT_LB          = 0x32; // Петля Вокодера PKT
+        constexpr uint8_t ORIG                = 0x35; // Исходящий вызов
+        constexpr uint8_t END                 = 0x36; // Завершение вызова
+        constexpr uint8_t DLOAD               = 0x3A; // Переключение в загрузчик
+        constexpr uint8_t TMOB                = 0x3B; // Команды тестового режима
+        constexpr uint8_t FTM_CMD             = 0x3B; // Заводской тест (FTM)
+        constexpr uint8_t TEST_STATE          = 0x3D; // Тестовое состояние
+        constexpr uint8_t STATE               = 0x3F; // Состояние телефона
+        constexpr uint8_t PILOT_SETS          = 0x40; // Наборы пилот-сигналов
+        constexpr uint8_t SPC                 = 0x41; // Отправка сервис-кода SPC
+        constexpr uint8_t BAD_SPC_MODE        = 0x42; // Ошибка: заблокирован SPC
+        constexpr uint8_t PARM_GET2           = 0x43; // Чтение параметров V2
+        constexpr uint8_t SERIAL_CHG          = 0x44; // Смена режима серийного порта
+        constexpr uint8_t PASSWORD            = 0x46; // Отправка пароля безопасности
+        constexpr uint8_t BAD_SEC_MODE        = 0x47; // Ошибка: неверная безопасность
+        constexpr uint8_t PR_LIST_WR          = 0x48; // Запись списка роуминга PRL
+        constexpr uint8_t PR_LIST_RD          = 0x49; // Чтение списка роуминга PRL
+        constexpr uint8_t SUBSYS_CMD          = 0x4B; // Диспетчер подсистем V1 ★ CRITICAL
+        constexpr uint8_t FEATURE_QUERY       = 0x51; // Опрос поддерживаемых функций
+        constexpr uint8_t SMS_READ            = 0x53; // Чтение SMS из NV
+        constexpr uint8_t SMS_WRITE           = 0x54; // Запись SMS в NV
+        constexpr uint8_t SUP_FER             = 0x55; // Ошибки кадров (FER)
+        constexpr uint8_t SUP_WALSH_CODES     = 0x56; // Коды Уолша
+        constexpr uint8_t SET_MAX_SUP_CH      = 0x57; // Установка макс. доп. каналов
+        constexpr uint8_t PARM_GET_IS95B      = 0x58; // Параметры IS-95B
+        constexpr uint8_t FS_OP               = 0x59; // Операции файловой системы EFS
+        constexpr uint8_t AKEY_VERIFY         = 0x5A; // Проверка ключа A-KEY
+        constexpr uint8_t BMP_HS_SCREEN       = 0x5B; // Эмуляция экрана (Битмап)
+        constexpr uint8_t CONFIG_COMM         = 0x5C; // Конфигурация связи (Baudrate)
+        constexpr uint8_t EXT_LOGMASK         = 0x5D; // Расширенная маска логов
+        constexpr uint8_t EVENT_REPORT        = 0x60; // Отчет статических событий
+        constexpr uint8_t STREAMING_CONFIG    = 0x61; // Конфигурация потоков данных
+        constexpr uint8_t PARM_RETRIEVE       = 0x62; // Извлечение параметров
+        constexpr uint8_t STATUS_SNAPSHOT     = 0x63; // Снимок состояния DMSS
+        constexpr uint8_t GET_PROPERTY        = 0x65; // Запрос динамических свойств
+        constexpr uint8_t PUT_PROPERTY        = 0x66; // Запись динамических свойств
+        constexpr uint8_t GET_GUID            = 0x67; // Запрос уникального GUID
+        constexpr uint8_t USER_CMD            = 0x68; // Пользовательские коллбэки
+        constexpr uint8_t GET_PERM_PROPERTY   = 0x69; // Чтение постоянных свойств
+        constexpr uint8_t PUT_PERM_PROPERTY   = 0x6A; // Запись постоянных свойств
+        constexpr uint8_t PERM_USER_CMD       = 0x6B; // Перманентные коллбэки
+        constexpr uint8_t GPS_SESS_CTRL       = 0x6C; // Управление сессией GPS
+        constexpr uint8_t GPS_GRID            = 0x6D; // Поисковая сетка GPS
+        constexpr uint8_t GPS_STATISTICS      = 0x6E; // Статистика GPS
+        constexpr uint8_t ROUTE               = 0x6F; // Маршрутизация инстансов
+        constexpr uint8_t IS2000_STATUS       = 0x70; // Статус соты IS2000
+        constexpr uint8_t RLP_STAT_RESET      = 0x71; // Сброс статистики RLP
+        constexpr uint8_t TDSO_STAT_RESET     = 0x72; // Сброс статистики TDSO
+        constexpr uint8_t LOG_CONFIG          = 0x73; // Конфиг логирования ★ MAIN LOGS
+        constexpr uint8_t TRACE_EVENT_REPORT  = 0x74; // Отчет событий трассировки
+        constexpr uint8_t SBI_READ            = 0x75; // Чтение по интерфейсу SBI
+        constexpr uint8_t SBI_WRITE           = 0x76; // Запись по интерфейсу SBI
+        constexpr uint8_t SSD_VERIFY          = 0x77; // Верификация SSD данных
+        constexpr uint8_t LOG_ON_DEMAND       = 0x78; // Запрос лога по требованию
+        constexpr uint8_t EXT_MSG             = 0x79; // Расширенный отчет MSG
+        constexpr uint8_t ONCRPC              = 0x7A; // Удаленный вызов ONCRPC
+        constexpr uint8_t PROTOCOL_LOOPBACK   = 0x7B; // Аппаратная петля DIAG
+        constexpr uint8_t EXT_BUILD_ID        = 0x7C; // Текст Build ID прошивки
+        constexpr uint8_t EXT_MSG_CONFIG      = 0x7D; // Конфигурация расширенных MSG
+        constexpr uint8_t EXT_MSG_TERSE       = 0x7E; // Текстовый формат логов (Terse)
+        constexpr uint8_t EXT_MSG_TERSE_XLATE = 0x7F; // Трансляция Terse ID
+        constexpr uint8_t SUBSYS_CMD_VER_2    = 0x80; // Диспетчер подсистем V2
+        constexpr uint8_t EVENT_MASK_GET      = 0x81; // Запрос маски событий
+        constexpr uint8_t EVENT_MASK_SET      = 0x82; // Установка маски событий
+        constexpr uint8_t CHANGE_PORT_SETTINGS = 0x8C; // Изменение настроек порта TTY
+        constexpr uint8_t CNTRY_INFO          = 0x8D; // Сведения о домашней сети соты
+        constexpr uint8_t SUPS_REQ            = 0x8E; // Запрос доп. сервисов сети
+        constexpr uint8_t MMS_ORIG_SMS_REQUEST = 0x8F; // Запрос SMS для MMS
+        constexpr uint8_t MEAS_MODE           = 0x90; // Режим радиоизмерений соты
+        constexpr uint8_t MEAS_REQ            = 0x91; // Запрос измерений каналов HDR
+        constexpr uint8_t QSR_EXT_MSG_TERSE   = 0x92; // Оптимизированные F3 логи
+        constexpr uint8_t DCI_CMD_REQ         = 0x93; // Запрос команд интерфейса DCI
+        constexpr uint8_t DCI_DELAYED_RSP     = 0x94; // Отложенный ответ DCI
+        constexpr uint8_t BAD_TRANS           = 0x95; // Ошибка транзакции DCI
+        constexpr uint8_t SSM_DISALLOWED_CMD  = 0x96; // Команда заблокирована SSM
+        constexpr uint8_t LOG_ON_DEMAND_EXT   = 0x97; // Расширенный лог по требованию
+        constexpr uint8_t CMD_EXT             = 0x98; // Расширенный заголовок логов
+        constexpr uint8_t QSR4_EXT_MSG_TERSE  = 0x99; // Логи сжатия Qshrink4
+        constexpr uint8_t DCI_CONTROL_PACKET  = 0x9A; // Управляющий пакет DCI
+        constexpr uint8_t COMPRESSED_PKT      = 0x9B; // Сжатый входящий пакет DIAG
+        constexpr uint8_t MSG_SMALL           = 0x9C; // Облегченный лог MSG
+        constexpr uint8_t QSH_TRACE_PAYLOAD   = 0x9D; // Полезный трафик трассировки QSH
+        constexpr uint8_t SECURE_LOG          = 0x9E; // Зашифрованный лог Secure Log
+    } // namespace cmd
+
+    enum class SubsysId : uint8_t {
+        Oem             = 0,   /* Зарезервировано для OEM */
+        Zrex            = 1,   /* Операционная система ZREX */
+        Sd              = 2,   /* Определение системы (System Determination) */
+        Bt              = 3,   /* Стек Bluetooth */
+        Wcdma           = 4,   /* Радиостек WCDMA (3G) */
+        Hdr             = 5,   /* Высокоскоростная передача данных 1xEvDO */
+        Diablo          = 6,   /* Подсистема DIABLO */
+        Trex            = 7,   /* Тестирование на хосте (Off-target) */
+        Gsm             = 8,   /* Радиостек GSM (2G) */
+        Umts            = 9,   /* Общий стек сотовой связи UMTS */
+        Hwtc            = 10,  /* Модуль аппаратного тестирования HWTC */
+        Ftm             = 11,  /* Заводской тестовый режим (Factory Test Mode) */
+        Rex             = 12,  /* Операционная система REX */
+        Os              = 12,  /* Алиас для REX OS */
+        Gps             = 13,  /* Спутниковая навигация GPS / GNSS */
+        Wms             = 14,  /* Сервис беспроводных сообщений (SMS/WMS) */
+        Cm              = 15,  /* Менеджер вызовов (Call Manager) */
+        Hs              = 16,  /* Интерфейс трубки (Handset) */
+        AudioSettings   = 17,  /* Настройки звукового тракта */
+        DiagServ        = 18,  /* Внутренние сервисы протокола DIAG */
+        Fs              = 19,  /* Файловая система модема (EFS2) */
+        PortMapSettings = 20,  /* Конфигурация маппинга портов */
+        MediaPlayer     = 21,  /* Медиаплеер QCT */
+        QCamera         = 22,  /* Управление камерой QCT */
+        MobiMon         = 23,  /* Мониторинг мобильной платформы */
+        GuniMon         = 24,  /* Утилита GuniMon */
+        Lsm             = 25,  /* Менеджер геолокационных сервисов */
+        QCamcorder      = 26,  /* Видеозапись QCT */
+        Mux1x           = 27,  /* Мультиплексор цепей 1X */
+        Data1x          = 28,  /* Передача данных 1X */
+        Srch1x          = 29,  /* Поисковый модуль базовых станций 1X */
+        CallP1x         = 30,  /* Обработчик вызовов 1X */
+        Apps            = 31,  /* Ядро приложений (Applications Processor) */
+        Settings        = 32,  /* Системные настройки */
+        Gsdi            = 33,  /* Универсальный интерфейс драйвера SIM (GSDI) */
+        UimDiag         = 33,  /* Алиас для GSDI / UIM */
+        Tmc             = 34,  /* Главный контроллер задач (Task Main Controller) */
+        Usb             = 35,  /* Драйвер USB-интерфейса модема */
+        Pm              = 36,  /* Контроллер питания (Power Management) */
+        Debug           = 37,  /* Сервис отладки */
+        Qtv             = 38,  /* Модуль обработки ТВ */
+        Clkrgm          = 39,  /* Режим тактирования частот (Clock Regime) */
+        Devices         = 40,  /* Драйверы периферийных устройств */
+        Wlan            = 41,  /* Беспроводные сети Wi-Fi (802.11) */
+        PsDataLogging   = 42,  /* Логирование путей трафика данных */
+        Ps              = 42,  /* Алиас для Data Path Logging */
+        Mflo            = 43,  /* Технология вещания MediaFLO */
+        Dtv             = 44,  /* Модуль цифрового ТВ */
+        Rrc             = 45,  /* Состояния WCDMA Radio Resource Control */
+        Prof            = 46,  /* Профилирование производительности */
+        Tcxomgr         = 47,  /* Менеджер генератора опорной частоты TCXO */
+        Nv              = 48,  /* Энергонезависимая память калибровок (NVRAM) */
+        AutoConfig      = 49,  /* Автоматическая конфигурация */
+        Params          = 50,  /* Параметры отладки внутренних систем */
+        Mddi            = 51,  /* Дисплейный интерфейс MDDI */
+        DsAtcop         = 52,  /* Обработчик AT-команд терминала */
+        L4Linux         = 53,  /* Слой гипервизора L4 / ОС Linux */
+        Mvs             = 54,  /* Мультимодовые голосовые кодеки (Voice Services) */
+        Cnv             = 55,  /* Сжатая NV-память */
+        ApiOneProgram   = 56,  /* Платформа apiOne */
+        Hit             = 57,  /* Тестирование интеграции железа (HIT) */
+        Drm             = 58,  /* Управление цифровыми правами DRM */
+        Dm              = 59,  /* Управление устройством (Device Management) */
+        Fc              = 60,  /* Контроллер потока данных (Flow Controller) */
+        Memory          = 61,  /* Менеджер аллокации кучи (Malloc) */
+        FsAlternate     = 62,  /* Alternate File System */
+        Regression      = 63,  /* Команды регрессионного тестирования */
+        Sensors         = 64,  /* Диспетчер датчиков и сенсоров */
+        Flute           = 65,  /* Протокол доставки файлов FLUTE */
+        Analog          = 66,  /* Подсистема аналоговой обвязки чипа */
+        ApiOneProgModem = 67,  /* Выполнение софта apiOne на процессоре модема */
+        Lte             = 68,  /* Модуль связи 4G LTE ★ CENTRAL FOR 4G */
+        Brew            = 69,  /* Среда выполнения приложений BREW */
+        Pwrdb           = 70,  /* Инструмент отладки линий питания */
+        Chord           = 71,  /* Координатор очередей задач (Chaos Coordinator) */
+        Sec             = 72,  /* Криптография и безопасность (Security) */
+        Time            = 73,  /* Сервисы точного времени и синхронизации */
+        Q6Core          = 74,  /* Системные вызовы ядра DSP Hexagon Q6 */
+        CoreBsp         = 75,  /* Слой поддержки платформы CoreBSP */
+        Mflo2           = 76,  /* Расширенный стриминг Media Flow */
+        Ulog            = 77,  /* Внутренние микро-логи модема (ULog Services) */
+        Apr             = 78,  /* Асинхронный маршрутизатор пакетов DSP */
+        Qnp             = 79,  /* Модуль платформы QNP */
+        Stride          = 80,  /* Подсистема отладки Stride */
+        OemDpp          = 81,  /* Чтение/Запись калибровок радио в DPP раздел */
+        Q5Core          = 82,  /* Системные вызовы ядра ADSP */
+        Uscript         = 83,  /* Утилита конфигурации питания USCRIPT */
+        Nas             = 84,  /* Слой сотовой сигнализации Non-Access Stratum */
+        Cmapi           = 85,  /* Интерфейс CMAPI */
+        Ssm             = 86,  /* Менеджер безопасного состояния модема */
+        Tdscdma         = 87,  /* Радиостек TD-SCDMA */
+        SsmTest         = 88,  /* Тестирование модуля безопасности SSM */
+        Mpower          = 89,  /* Менеджер контроля энергопотребления MPower */
+        Qdss            = 90,  /* Аппаратная трассировка отладки QDSS STM */
+        Cxm             = 91,  /* Модуль сосуществования радиочастот LTE/Wi-Fi */
+        GnssSoc         = 92,  /* Вторичный сопроцессор навигации GNSS */
+        Ttlite          = 93,  /* Облегченный отладчик TTLite */
+        FtmAnt          = 94,  /* Заводской тест антенных переключателей */
+        Mlog            = 95,  /* Сервис системных микро-логов MLog */
+        LimitsMgr       = 96,  /* Менеджер тепловых и аппаратных лимитов тока */
+        EfsMonitor      = 97,  /* Мониторинг здоровья файловой памяти EFS */
+        DisplayCalib    = 98,  /* Калибровочные профили дисплея */
+        VersionReport   = 99,  /* Формирование расширенных отчетов версий ПО */
+        DsIpa           = 100, /* Аппаратный ускоритель маршрутизации IP-трафика */
+        SystemOps       = 101, /* Прямые низкоуровневые системные операции */
+        CnssPower       = 102, /* Управление питанием чипсета связи Connectivity */
+        Lwip            = 103, /* Облегченный TCP/IP стек lwIP внутри модема */
+        ImsQvpRtp       = 104, /* Мультимедиа трафик VoLTE / VoNR (RTP/QVP) */
+        Storage         = 105, /* Драйверы флеш-памяти и накопителей */
+        Wci2            = 106, /* Стандарт беспроводного сосуществования коаксиалов */
+        AostlmTest      = 107, /* Тестирование спящих режимов телеметрии */
+        Last,
+        ReservedOem0    = 250,
+        ReservedOem1    = 251,
+        ReservedOem2    = 252,
+        ReservedOem3    = 253,
+        ReservedOem4    = 254,
+        Legacy          = 255
+    };
+
+    /**
+     * @brief Коды бинарных логов трассировки радиоэфира (Real Log Codes)
+     * Реальные 16-битные идентификаторы пакетов, вылетающие из диагностического порта модема.
+     */
+    namespace log_code {
+        // ─────────────────────────────────────────────────────────────────────────
+        // 1. ПОДСИСТЕМА UIM / SIM-КАРТЫ (Смещение: 0x1000)
+        // ─────────────────────────────────────────────────────────────────────────
+        constexpr uint16_t UIM_DATA                             = 0x1098; // Отладка обмена с R-UIM/SIM процессором
+        constexpr uint16_t GENERIC_SIM_TOOLKIT_TASK             = 0x1272; // События тасок STK (SIM Toolkit приложения)
+        constexpr uint16_t UIM_DS_DATA                          = 0x14CE; // Сессионные данные обмена UIM интерфейса
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // 2. СЕТЕВОЙ СТЕК IP / ПЕРЕДАЧА ДАННЫХ (Смещение: 0x1000)
+        // ─────────────────────────────────────────────────────────────────────────
+        constexpr uint16_t DATA_PROTOCOL_LOGGING                 = 0x11EB; // Системные протоколы данных (PPP, HDLC)
+        constexpr uint16_t DATA_NET_IP_RM_TX_80_BYTES            = 0x1572; // Исходящий Rm IP трафик (куски по 80 байт)
+        constexpr uint16_t DATA_NET_IP_RM_RX_80_BYTES            = 0x1573; // Входящий Rm IP трафик (куски по 80 байт)
+        constexpr uint16_t DATA_NET_IP_RM_TX_FULL                = 0x1574; // Исходящие Rm IP кадры (Полные пакеты)
+        constexpr uint16_t DATA_NET_IP_RM_RX_FULL                = 0x1575; // Входящие Rm IP кадры (Полные пакеты)
+        constexpr uint16_t DATA_NET_IP_UM_TX_80_BYTES            = 0x1576; // Исходящий Um IP трафик (куски по 80 байт)
+        constexpr uint16_t DATA_NET_IP_UM_RX_80_BYTES            = 0x1577; // Входящий Um IP трафик (куски по 80 байт)
+        constexpr uint16_t DATA_NET_IP_UM_TX_FULL                = 0x1578; // Исходящие Um IP кадры (Полные пакеты)
+        constexpr uint16_t DATA_NET_IP_UM_RX_FULL                = 0x1579; // Входящие Um IP кадры (Полные пакеты)
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // 3. СТЕК 2G GSM (Смещение: 0x5000)
+        // ─────────────────────────────────────────────────────────────────────────
+        #ifdef FEATURE_GSM
+        constexpr uint16_t GSM_RR_SIGNALING_MESSAGE              = 0x512F; // Сигнальные сообщения L3 RR (Radio Resource)
+        constexpr uint16_t GSM_CELL_INFORMATION                  = 0x5130; // Базовые параметры текущей GSM соты
+        constexpr uint16_t GSM_SURROUNDING_CELL_INFO             = 0x5134; // Параметры соседних сот для хэндовера
+        constexpr uint16_t GSM_SACCH_REPORT                      = 0x516C; // Периодические отчеты измерений SACCH
+        #endif
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // 4. СТЕК 3G WCDMA / UMTS (Смещение: 0x4000)
+        // ─────────────────────────────────────────────────────────────────────────
+        #if defined(FEATURE_WCDMA) || defined(FEATURE_UMTS)
+        constexpr uint16_t WCDMA_RRC_STATES                      = 0x4115; // Изменения состояний RRC (Idle, Cell_DCH, FACH)
+        constexpr uint16_t WCDMA_RRC_SIGNALING_MESSAGE           = 0x412F; // Сигнальный L3 эфир WCDMA базовых станций
+        constexpr uint16_t WCDMA_CELL_ID_INFO                    = 0x4132; // Метрики текущей соты (UARFCN, PSC, RSSI)
+        constexpr uint16_t WCDMA_NEIGHBOR_CELL_MEASUREMENT       = 0x4179; // Измерения активного и соседних сетов сот
+        #endif
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // 5. КРИТИЧЕСКИЙ СТЕК 4G LTE (Смещение: 0xB000)
+        // ─────────────────────────────────────────────────────────────────────────
+        #ifdef FEATURE_LTE
+        constexpr uint16_t LTE_RRC_OTA_PACKET                    = 0xB0C2; // Сигнальный OTA-эфир 4G БС (SIB-ы, Мэппинги) ★
+        constexpr uint16_t LTE_NAS_EMM_PLAIN_MSG                 = 0xB0E2; // Сигнализация NAS EMM (Регистрация, Шаринг)
+        constexpr uint16_t LTE_NAS_ESM_PLAIN_MSG                 = 0xB0E3; // Сигнализация NAS ESM (Каналы данных, Bearers)
+        constexpr uint16_t LTE_ML1_SERVING_CELL_MEASUREMENT      = 0xB192; // Физические метрики домашней соты (RSRP, SINR)
+        constexpr uint16_t LTE_ML1_NEIGHBOR_CELL_MEASUREMENT     = 0xB031; // Измерения соседних LTE сот вокруг сканера
+        constexpr uint16_t LTE_MAC_RCH_PACKET                    = 0xB060; // Логирование случайного доступа RACH на L2 MAC
+        constexpr uint16_t LTE_PDCP_DL_SRB_PACKET                = 0xB0A0; // Сигнальные L2 пакеты DOWNLINK (Прием от БС)
+        constexpr uint16_t LTE_PDCP_UL_SRB_PACKET                = 0xB0B0; // Сигнальные L2 пакеты UPLINK (Отправка на БС)
+        #endif
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // 6. СТЕК СЛЕДУЮЩЕГО ПОКОЛЕНИЯ 5G NR (Смещение: 0xB100 - 0xB800)
+        // Архитектура Qualcomm Snapdragon X55 модема SIM8200
+        // ─────────────────────────────────────────────────────────────────────────
+        #ifdef FEATURE_NR
+        constexpr uint16_t NR5G_RRC_OTA_PACKET                   = 0xB193; // Сигнальный OTA-эфир 5G NR базовых станций ★
+        constexpr uint16_t NR5G_NAS_SECURE_MSG                   = 0xB195; // Безопасные NAS сообщения 5G ядра (AMF/SMF)
+        constexpr uint16_t NR5G_ML1_CELL_SEARCH_INFO             = 0xB142; // Результаты сканирования ячеек (PCI, SSB частоты)
+        constexpr uint16_t NR5G_ML1_SERV_CELL_BEAM_MEAS          = 0xB14D; // Логирование лучей 5G (Beamforming, RSRP, RSRQ)
+        constexpr uint16_t NR5G_ML1_NEIGHBOR_CELL_MEAS           = 0xB14E; // Измерения соседних базовых станций 5G NR
+        #endif
+    } // namespace log_code
+
+}
+
 #define DIAG_VERNO_F 0x00// 0
 /* Mobile Station ESN Request/Response        */
 #define DIAG_ESN_F 0x01// 1
