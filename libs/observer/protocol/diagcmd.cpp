@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+
 #include "diagcmd.h"
 
 // Вспомогательная функция для упаковки 32-битного числа в little-endian
@@ -21,6 +22,7 @@ uint8_t* create_log_config_set_mask(uint32_t equip_id, uint32_t last_item,
     size_t total_len = 16 + payload_bytes; // 4 uint32_t = 16 байт
 
     uint8_t* packet = (uint8_t*)malloc(total_len);
+
     if (!packet) {
         *out_len = 0;
         return NULL;

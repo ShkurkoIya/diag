@@ -1,6 +1,9 @@
 #include "diag_wcdma_log_parser.h"
-#include "asn1c_umts_bridge.h"
 #include "journal.h"
+
+#ifdef FEATURE_WCDMA
+#include "asn1c_umts_bridge.h"
+
 #include <cstdio>
 #include <cstring>
 #include <ctime>
@@ -469,3 +472,5 @@ bool DiagWcdmaLogParser::parse_rrc_ota(const uint8_t *p, size_t plen) {
     }
     return true;
 }
+
+#endif //FEATURE_WCDMA

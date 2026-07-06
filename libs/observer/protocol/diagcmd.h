@@ -1,6 +1,8 @@
 #pragma once
-#ifndef DIAGCMD_H
-#define DIAGCMD_H
+
+#include <cstdint>
+#include <cstddef>
+
 #define DIAG_VERNO_F 0x00// 0
 /* Mobile Station ESN Request/Response        */
 #define DIAG_ESN_F 0x01// 1
@@ -665,10 +667,6 @@ typedef enum {
 } log_code_5GNR;
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * Вычисляет количество байт, необходимое для хранения указанного числа бит.
  */
@@ -756,12 +754,3 @@ uint8_t *log_mask_scat_1x(uint32_t num_max_items, uint32_t layer_flags, size_t *
 
 uint8_t *log_mask_scat_lte(uint32_t num_max_items, uint32_t layer_flags, size_t *out_len);
 uint8_t *log_mask_scat_nr(uint32_t num_max_items, uint32_t layer_flags, size_t *out_len);
-
-#ifdef __cplusplus
-}
-#endif
-
-/*!
-@endcond
-*/
-#endif /* DIAGCMD_H */

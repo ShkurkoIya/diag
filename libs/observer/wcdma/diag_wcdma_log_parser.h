@@ -2,7 +2,7 @@
 #ifndef DIAG_WCDMA_LOG_PARSER_H
 #define DIAG_WCDMA_LOG_PARSER_H
 
-#include "diag_common.h"
+#include "protocol/diag_common.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // WCDMA log codes  (LOG_WCDMA_BASE_C = 0x4000)

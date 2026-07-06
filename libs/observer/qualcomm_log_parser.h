@@ -1,21 +1,30 @@
 #pragma once
-#ifndef QUALCOMM_LOG_PARSER_H
-#define QUALCOMM_LOG_PARSER_H
 
 #include "protocol/diag_common.h"
 
-// Per-RAT parsers
-#include "diag_gsm_log_parser.h"
-#include "diag_lte_ml1_parser.h"//   renamed from diag_lte_log_parser
-#include "diag_lte_nas_parser.h"//   slimmed — EMM/ESM only
-#include "diag_lte_rrc_parser.h"// ★ NEW — identity from 0xB0C0/C1/C2
-#include "diag_nr_log_parser.h"
-#include "diag_umts_log_parser.h"
-#include "diag_wcdma_log_parser.h"
+#ifdef FEATURE_GSM
+#include "gsm/diag_gsm_log_parser.h"
+#endif
 
-#include <memory>
-#include <string>
-#include <unordered_map>
+#ifdef FEATURE_WCDMA
+#include "wcdma/diag_wcdma_log_parser.h"
+#endif
+
+#ifdef FEATURE_UMTS
+#include "umts/diag_umts_log_parser.h"
+#endif
+
+#ifdef FEATURE_LTE
+#include "lte/diag_lte_ml1_parser.h"
+#include "lte/diag_lte_nas_parser.h"
+#include "lte/diag_lte_rrc_parser.h"
+#endif
+
+#ifdef FEATURE_NR
+#include "nr/diag_nr_log_parser.h"
+#endif
+
+#include <vector>
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Radio Access Technology tag.
@@ -121,5 +130,3 @@ private:
     NeighborCallback neighbor_cb_;
     RawFrameCallback raw_cb_;
 };
-
-#endif// QUALCOMM_LOG_PARSER_H

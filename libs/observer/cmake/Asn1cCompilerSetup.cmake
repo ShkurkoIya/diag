@@ -1,47 +1,50 @@
-include(FetchContent)
+include(ExternalProject)
+include_guard(GLOBAL)
 
-message(STATUS "[ASN.1] Разворачиваем правильный 3GPP-компилятор asn1c (mouse07410)...")
+message(STATUS "[ASN.1] Настройка 3GPP-компилятора asn1c (mouse07410)...")
 
-# Скачиваем форк, который умеет парсить расширения 3GPP [[ ]] и PER-кодирование
-FetchContent_Declare(
-    asn1c_compiler
-    GIT_REPOSITORY https://github.com/mouse07410/asn1c.git
-    GIT_TAG        vlm_master # Стабильная ветка для телеком-стеков
-)
-
-FetchContent_GetProperties(asn1c_compiler)
-if(NOT asn1c_compiler_POPULATED)
-  FetchContent_Populate(asn1c_compiler)
-
-  # Собираем бинарник прямо во время конфигурации, чтобы он был доступен сразу
-  set(ASN1C_SRC_DIR "${asn1c_compiler_SOURCE_DIR}")
-  set(ASN1C_BIN_DIR "${asn1c_compiler_BINARY_DIR}/bin")
-
-  # Нам нужен только исполняемый файл для сборки под хост-систему
-  find_program(MAKE_EXE NAMES gmake make REQURED)
-
-  # Запускаем автосборку компилятора (один раз на чистый билд)
-  if(NOT EXISTS "${ASN1C_BIN_DIR}/asn1c")
-    message(STATUS "[ASN.1] Компиляция бинарника asn1c на хосте (может занять полминуты)...")
-    execute_process(
-            COMMAND ./configure --prefix=${asn1c_compiler_BINARY_DIR}
-            WORKING_DIRECTORY "${ASN1C_SRC_DIR}"
-            RESULT_VARIABLE CONF_RES
-        )
-    execute_process(
-            COMMAND ${MAKE_EXE} -j
-            WORKING_DIRECTORY "${ASN1C_SRC_DIR}"
-            RESULT_VARIABLE MAKE_RES
-        )
-    execute_process(
-            COMMAND ${MAKE_EXE} install
-            WORKING_DIRECTORY "${ASN1C_SRC_DIR}"
-            RESULT_VARIABLE INSTALL_RES
-        )
+find_program(SYSTEM_ASN1C_EXE asn1c)
+if(SYSTEM_ASN1C_EXE)
+  execute_process(
+        COMMAND ${SYSTEM_ASN1C_EXE} -h
+        OUTPUT_VARIABLE ASN1C_HELP
+        ERROR_VARIABLE ASN1C_HELP_ERR
+    )
+  if(ASN1C_HELP MATCHES "gen-PER")
+    set(ASN1C_EXECUTABLE "${SYSTEM_ASN1C_EXE}" CACHE INTERNAL "Path to 3GPP asn1c")
+    add_custom_target(asn1c_host_compiler)
+    message(STATUS "[ASN.1] Найден подходящий системный компилятор: ${ASN1C_EXECUTABLE}")
+    return()
   endif()
-
-  # Экспортируем путь к нашему локальному, всеядному компилятору
-  set(ASN1C_EXECUTABLE "${asn1c_compiler_BINARY_DIR}/bin/asn1c" CACHE INTERNAL "Path to custom 3GPP asn1c")
 endif()
 
-message(STATUS "[ASN.1] Локальный компилятор готов: ${ASN1C_EXECUTABLE}")
+set(ASN1C_PREFIX "${CMAKE_BINARY_DIR}/external/asn1c")
+set(ASN1C_EXECUTABLE "${ASN1C_PREFIX}/bin/asn1c" CACHE INTERNAL "Path to custom 3GPP asn1c")
+
+if(NOT TARGET asn1c_host_compiler)
+  if(NOT CMAKE_HOST_C_COMPILER)
+    set(CMAKE_HOST_C_COMPILER "cc")
+  endif()
+
+  # ПОЧИНЕНО: Используем встроенные токены <SOURCE_DIR>, чтобы CMake железно
+  # знал, где лежит сгенерированный скрипт configure, даже если сборка идет в изолированной подпапке.
+  ExternalProject_Add(
+        asn1c_host_compiler
+        GIT_REPOSITORY     https://github.com/mouse07410/asn1c
+        GIT_TAG            vlm_master
+        PREFIX             "${CMAKE_BINARY_DIR}/external/asn1c_build"
+
+        # Запуск генератора Autotools строго внутри директории с исходниками
+        PATCH_COMMAND      autoreconf -ivf
+
+        # ПОЧИНЕНО: Жесткий абсолютный путь к скрипту конфигурации через токен <SOURCE_DIR>
+        CONFIGURE_COMMAND  <SOURCE_DIR>/configure --prefix=${ASN1C_PREFIX} CC=${CMAKE_HOST_C_COMPILER}
+
+        BUILD_COMMAND      $(MAKE) -j
+        INSTALL_COMMAND    $(MAKE) install
+        BUILD_BYPRODUCTS   "${ASN1C_EXECUTABLE}"
+        LOG_DOWNLOAD       ON
+        LOG_CONFIGURE      ON
+        LOG_BUILD          ON
+    )
+endif()
