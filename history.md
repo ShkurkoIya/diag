@@ -172,3 +172,148 @@ int main(int argc, char *argv[]) {
     SimPort.CloseConnection();
     return 0;
 }
+
+
+Вот тебе полный, структурированный срез (снапшот) нашего диалога. Скопируй этот текст целиком в любой Markdown-файл (например, README_SCANNER.md), и дома ты сможешь развернуть проект с любой контрольной точки!🛰️ Снапшот проекта: Низкоуровневый 5G/4G радиосканер (Qualcomm DIAG)Целевое железо: USB-модем SIMCom SIM8200G-M2 (чипсет Qualcomm Snapdragon X55)Язык / Стандарт: Modern C++17, C11, GNU Autotools, CMake 3.22+📌 Чек-лист сделанного (Status Summary)Полностью переписан сборочный слой (CMake): Устранено состояние гонки при параллельной сборке (make -j/Ninja), вычищен кэш, исправлена кросс-компиляция под Android NDK.Встроен всеядный телеком-компилятор ASN.1: Настроен автоматический оффлайн/онлайн деплой правильного форка mouse07410 (ветка vlm_master), который в отличие от классического asn1c поддерживает PER-кодирование соты и 3GPP-расширения [[ ]].Решена коллизия дубликатов типов 3GPP: Тяжелый автоген ASN.1 изолирован на уровне разделяемых библиотек (.so сошек) для LTE и 5G NR с флагами скрытия глобальных символов (-fvisibility=hidden).Начата тотальная зачистка Си-руин (C++17 Refactoring): Избавились от макросов, сырых указателей (malloc/free) и опасных смещений в рантайме.🏗️ Точка сборки: Архитектурный каркас (Modern CMake)1. Корень репозитория: /CMakeLists.txtcmakecmake_minimum_required(VERSION 3.22)
+project(observer_monorepo LANGUAGES C CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set_property(GLOBAL PROPERTY IN_SUBPROJECT ON)
+
+option(BUILD_FOR_LINUX   "Build natively for Linux (SIMCom TTY Daemon)" ON)
+option(BUILD_FOR_ANDROID "Build for Android NDK (DCI/JNI Library)" OFF)
+option(BUILD_FULL_RAT    "Enable all Radio Access Technologies" ON)
+
+if(BUILD_FULL_RAT)
+    set(DEFAULT_GSM ON) set(DEFAULT_WCDMA ON) set(DEFAULT_UMTS ON) set(DEFAULT_LTE ON) set(DEFAULT_NR ON)
+    set(DEFAULT_ASN1C_LTE ON) set(DEFAULT_ASN1C_UMTS ON)
+else()
+    set(DEFAULT_GSM OFF) set(DEFAULT_WCDMA OFF) set(DEFAULT_UMTS OFF) set(DEFAULT_LTE ON) set(DEFAULT_NR OFF)
+    set(DEFAULT_ASN1C_LTE OFF) set(DEFAULT_ASN1C_UMTS OFF)
+endif()
+
+option(USE_GSM         "Build with GSM"             ${DEFAULT_GSM})
+option(USE_WCDMA       "Build with WCDMA"           ${DEFAULT_WCDMA})
+option(USE_UMTS        "Build with UMTS"            ${DEFAULT_UMTS})
+option(USE_LTE         "Build with LTE"             ${DEFAULT_LTE})
+option(USE_NR          "Build with NR"              ${DEFAULT_NR})
+option(USE_ASN1C_LTE   "Build with LTE RRC decoder" ${DEFAULT_ASN1C_LTE})
+option(USE_ASN1C_UMTS  "Build with UMTS RRC decoder" ${DEFAULT_ASN1C_UMTS})
+
+add_subdirectory(libs/observer)
+if(BUILD_FOR_LINUX)   add_subdirectory(apps/linux_simcom) endif()
+if(BUILD_FOR_ANDROID) add_subdirectory(apps/android)      endif()
+Используйте код с осторожностью.2. Слой автогенератора: /libs/observer/cmake/Asn1cGenerator.cmakecmakeinclude_guard(GLOBAL)
+
+function(add_asn1_library TARGET_NAME ASN_FILE OUTPUT_DIR)
+  get_filename_component(ABSOLUTE_ASN_FILE "${ASN_FILE}" ABSOLUTE)
+  file(MAKE_DIRECTORY "${OUTPUT_DIR}")
+
+  if(NOT EXISTS "${OUTPUT_DIR}/asn_constant.h")
+    message(STATUS "[ASN.1] Предварительная атомарная генерация исходников для ${TARGET_NAME}...")
+    execute_process(
+        COMMAND "${CMAKE_BINARY_DIR}/external/asn1c/bin/asn1c" 
+                -pdu=all -fcompound-names -fprefer-import-source -gen-UPER -gen-APER -D "${OUTPUT_DIR}" "${ABSOLUTE_ASN_FILE}"
+        RESULT_VARIABLE ASN_RES
+    )
+    if(NOT ASN_RES EQUAL 0) message(FATAL_ERROR "[ASN.1] Ошибка компиляции спецификации соты!") endif()
+    file(REMOVE "${OUTPUT_DIR}/converter-example.c")
+  endif()
+
+  file(GLOB GENERATED_SOURCES "${OUTPUT_DIR}/*.c")
+  list(REMOVE_ITEM GENERATED_SOURCES "${OUTPUT_DIR}/pdu_collection.c")
+
+  add_library(${TARGET_NAME} STATIC ${GENERATED_SOURCES})
+  
+  set(ASN1C_COMPAT_FLAGS "")
+  if(NOT ANDROID AND CMAKE_C_COMPILER_ID MATCHES "Clang|GNU")
+    list(APPEND ASN1C_COMPAT_FLAGS "-include" "stddef.h" "-include" "sys/types.h" "-include" "signal.h")
+  endif()
+
+  target_include_directories(${TARGET_NAME} PUBLIC $<BUILD_INTERFACE:${OUTPUT_DIR}>)
+  target_compile_options(${TARGET_NAME} PRIVATE -w ${ASN1C_COMPAT_FLAGS})
+  target_compile_definitions(${TARGET_NAME} PUBLIC ASN_PDU_COLLECTION=1)
+  set_target_properties(${TARGET_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+endfunction()
+Используйте код с осторожностью.🗃️ Слой ядра: Перенос на C++17 (Готовая кодовая база)1. Карта системных логов и команд: /libs/observer/protocol/diag_defs.hcpp#pragma once
+#include <cstdint>
+#include <cstddef>
+
+namespace observer::diag {
+namespace cmd {
+    constexpr uint8_t LOGMASK             = 0x0F; // Настройка масок логирования
+    constexpr uint8_t LOG                 = 0x10; // Входящий бинарный поток логов радиоэфира
+    constexpr uint8_t SUBSYS_CMD          = 0x4B; // Диспетчер подсистем V1 Qualcomm
+    constexpr uint8_t LOG_CONFIG          = 0x73; // Конфигурация логирования соты
+}
+
+enum class SubsysId : uint8_t {
+    Apps            = 31, 
+    Lte             = 68, // Модуль связи 4G LTE
+    Nas             = 84, // Слой сотовой сигнализации NAS (Attach, сессии)
+    Legacy          = 255
+};
+
+namespace log_code {
+    #ifdef FEATURE_LTE
+    constexpr uint16_t LTE_RRC_OTA_PACKET                    = 0xB0C2; // Сигнальный OTA-эфир 4G БС ★
+    constexpr uint16_t LTE_NAS_EMM_PLAIN_MSG                 = 0xB0E2; // Управление мобильностью (Attach/Detach)
+    constexpr uint16_t LTE_NAS_ESM_PLAIN_MSG                 = 0xB0E3; // Управление сессиями данных (IP, Bearers)
+    constexpr uint16_t LTE_ML1_SERVING_CELL_MEASUREMENT      = 0xB192; // Физические метрики домашней соты (RSRP, SINR)
+    #endif
+
+    #ifdef FEATURE_NR
+    constexpr uint16_t NR5G_RRC_OTA_PACKET                   = 0xB193; // Сигнальный OTA-эфир 5G базовых станций SA/NSA ★
+    #endif
+}
+
+namespace log_op {
+    constexpr uint8_t SET_MASK               = 3; // Активировать маску сканирования соты
+}
+}
+Используйте код с осторожностью.2. Безопасные генераторы масок: /libs/observer/protocol/diagcmd.cppcpp#include "diagcmd.h"
+#include "diag_defs.h"
+#include "journal.h"
+#include <algorithm>
+
+namespace observer::diag::mask {
+
+#pragma pack(push, 1)
+struct LogConfigHeader {
+    uint8_t  cmd_code;   // 0x73 (diag::cmd::LOG_CONFIG)
+    uint8_t  operation;  // log_op::SET_MASK
+    uint16_t reserved;   // 0
+    uint32_t equiv_user; // 0
+};
+#pragma pack(pop)
+
+std::vector<uint8_t> make_log_mask_lte(uint32_t num_max_items, LayerLteNr layer_flags) {
+    size_t mask_bytes = (num_max_items + 7) / 8;
+    size_t packet_size = sizeof(LogConfigHeader) + mask_bytes;
+    std::vector<uint8_t> buffer(packet_size, 0);
+
+    auto* header = reinterpret_cast<LogConfigHeader*>(buffer.data());
+    header->cmd_code = cmd::LOG_CONFIG;
+    header->operation = log_op::SET_MASK;
+
+    uint8_t* mask_ptr = buffer.data() + sizeof(LogConfigHeader);
+
+    if (static_cast<uint32_t>(layer_flags) & static_cast<uint32_t>(LayerLteNr::Rrc)) {
+        Journal::info("make_log_mask_lte: Формирование маски под перехват LTE RRC OTA (0xB0C2)");
+        uint16_t internal_idx = log_code::LTE_RRC_OTA_PACKET & 0x0FFF; // Перевод Qualcomm в битовый сдвиг
+        if ((internal_idx / 8) < mask_bytes) {
+            mask_ptr[internal_idx / 8] |= (1 << (internal_idx % 8)); // Включаем бит перехвата!
+        }
+    }
+    return buffer;
+}
+}
+Используйте код с осторожностью.🚀 Fast-Track команды терминала (Запуск сборки дома)Когда придешь домой, открой терминал в корне проекта vlados_parser_linux и выполни эти команды по шагам:1. Установка системных GNU-зависимостей хостаbashsudo apt update && sudo apt install -y build-essential autoconf automake libtool libtool-bin bison flex git
+Используйте код с осторожностью.2. Сброс кэша и генерация индексной карты для IDE (compile_commands.json)bashrm -rf build && mkdir build && cd build
+cmake .. -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DBUILD_FOR_LINUX=ON -DBUILD_FULL_RAT=OFF -DUSE_LTE=ON -DUSE_NR=ON -DUSE_ASN1C_LTE=ON
+Используйте код с осторожностью.3. Компиляция проекта (на полную мощность процессора)bashcmake --build . -j$(nproc)
+Используйте код с осторожностью.4. Подключение автодополнения в Zed / VS Code (Выполнить из корня)bashcd .. && ln -sf build/compile_commands.json compile_commands.json
+Используйте код с осторожностью.(После этого перезапусти Language Server/clangd в редакторе, вся подсветка ошибок уйдет).🔄 На чем остановились / Что делать дальше:Дома открывай проект, проверяй компиляцию ядра observer. Как только будешь готов продолжать, пиши мне и скидывай следующий кусок кода на C++ рефакторинг:libs/observer/protocol/diag_request.cpp — логика обертки масок в HDLC-кадры и расчет контрольной суммы CRC16.apps/linux_simcom/io/serial_port.cpp — настройка структуры termios для стабильного удержания связи с USB-портом модема SIM8200 без потерь бинарных байт.Удачи в дороге, бро! Как устроишься дома — скидывай файлы, продолжим доводить проект до идеального рабочего состояния!В ответах искусственного интеллекта могут быть ошибки. Подробнее…
