@@ -7,34 +7,6 @@
 #include <cstdlib>
 #include <cstring>
 
-#ifdef USE_ASN1C_LTE
-extern "C" {
-#include <asn_application.h>
-#include <asn_internal.h>
-#include <constr_TYPE.h>
-
-#include "BCCH-BCH-Message.h"
-#include "BCCH-BCH-MessageType.h"
-#include "BCCH-DL-SCH-Message.h"
-#include "InterFreqCarrierFreqInfo.h"
-#include "InterFreqNeighCellInfo.h"
-#include "IntraFreqNeighCellInfo.h"
-#include "MasterInformationBlock.h"
-#include "MeasResultEUTRA.h"
-#include "MeasResults.h"
-#include "MeasurementReport.h"
-#include "PLMN-IdentityInfo.h"
-#include "SystemInformation.h"
-#include "SystemInformationBlockType1.h"
-#include "SystemInformationBlockType4.h"
-#include "SystemInformationBlockType5.h"
-#include "UL-DCCH-Message.h"
-#include "UL-DCCH-MessageType.h"
-
-extern "C" asn_TYPE_descriptor_t *asn_pdu_collection[];
-}
-#endif
-
 namespace lte_asn1 {
 
     const char *pdu_type_name(uint8_t pdu_type_canonical) {
