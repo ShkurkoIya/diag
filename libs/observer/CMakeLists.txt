@@ -36,13 +36,16 @@ target_sources(observer PRIVATE
     qualcomm_log_parser.cpp
 )
 
-# Компиляторные флаги
+# Компиляторные флаги/generated/asn1c_umts
 target_compile_options(observer PRIVATE -Wall -Wextra -O2)
 
 # НАСТРОЙКА ИНКЛЮДОВ ПО BEST PRACTICES
 target_include_directories(observer
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/protocol
+        ${CMAKE_CURRENT_BINARY_DIR}/generated/asn1c_lte
+        ${CMAKE_CURRENT_SOURCE_DIR}/generated/asn1c_umts
     PUBLIC
         # Позволяет писать #include "libs/observer/protocol/diagcmd.h" в приложениях
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
@@ -91,3 +94,17 @@ register_asn1_decoder("lte"
     ASN_FILE  asn1/EUTRA-RRC-Definitions.asn
     SOLIB_FILE lte/lte_rrc_ota_decoder.cpp
 )
+
+if(TARGET observer_asn1_lte)
+  add_dependencies(observer observer_asn1_lte)
+  target_link_libraries(observer PRIVATE observer_asn1_lte)
+endif()
+
+# if(TARGET observer_asn1_umts)
+#   add_dependencies(observer observer_asn1_umts)
+#   target_link_libraries(observer PRIVATE observer_asn1_umts)
+# endif()
+
+if(TARGET asn1c_host_compiler)
+  add_dependencies(observer asn1c_host_compiler)
+endif()

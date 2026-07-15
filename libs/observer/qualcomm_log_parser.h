@@ -2,27 +2,13 @@
 
 #include "protocol/diag_common.h"
 
-#ifdef FEATURE_GSM
 #include "gsm/diag_gsm_log_parser.h"
-#endif
-
-#ifdef FEATURE_WCDMA
 #include "wcdma/diag_wcdma_log_parser.h"
-#endif
-
-#ifdef FEATURE_UMTS
 #include "umts/diag_umts_log_parser.h"
-#endif
-
-#ifdef FEATURE_LTE
 #include "lte/diag_lte_ml1_parser.h"
 #include "lte/diag_lte_nas_parser.h"
 #include "lte/diag_lte_rrc_parser.h"
-#endif
-
-#ifdef FEATURE_NR
 #include "nr/diag_nr_log_parser.h"
-#endif
 
 #include <vector>
 
