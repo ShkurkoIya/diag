@@ -1,5 +1,4 @@
 // asn1c_lte_bridge.cpp
-//
 // Bridge between our DIAG pipeline and asn1c-generated LTE RRC parsers.
 
 #include "asn1c_lte_bridge.h"
@@ -15,6 +14,7 @@ extern "C" {
 #include <constr_TYPE.h>
 
 #include "BCCH-BCH-Message.h"
+#include "BCCH-BCH-MessageType.h"
 #include "BCCH-DL-SCH-Message.h"
 #include "InterFreqCarrierFreqInfo.h"
 #include "InterFreqNeighCellInfo.h"
@@ -29,8 +29,9 @@ extern "C" {
 #include "SystemInformationBlockType4.h"
 #include "SystemInformationBlockType5.h"
 #include "UL-DCCH-Message.h"
+#include "UL-DCCH-MessageType.h"
 
-extern asn_TYPE_descriptor_t *asn_pdu_collection[];
+extern "C" asn_TYPE_descriptor_t *asn_pdu_collection[];
 }
 #endif
 
@@ -162,8 +163,8 @@ namespace lte_asn1 {
 
         if (std::strcmp(pdu_name, "BCCH-DL-SCH-Message") == 0) {
             auto *msg = static_cast<BCCH_DL_SCH_Message_t *>(structure);
-            if (msg->message.present == BCCH_DL_SCH_MessageType_PR_c1) {
-                auto &c1 = msg->message.choice.c1;
+            if (msg->message->present == BCCH_DL_SCH_MessageType_PR_c1) {
+                auto &c1 = msg->message->choice.c1;
                 if (c1.present == BCCH_DL_SCH_MessageType__c1_PR_systemInformationBlockType1) {
                     r.message_type = "SIB1";
                     SystemInformationBlockType1_t &sib1 =
@@ -176,13 +177,13 @@ namespace lte_asn1 {
                         PLMN_IdentityInfo_t *info = plmn_list.list.array[i];
                         if (!info) continue;
                         PlmnEntry pe;
-                        if (info->plmn_Identity.mcc) {
-                            pe.mcc = digits_to_string(*info->plmn_Identity.mcc);
+                        if (info->plmn_Identity->mcc) {
+                            pe.mcc = digits_to_string(*info->plmn_Identity->mcc);
                             last_mcc = pe.mcc;
                         } else if (!last_mcc.empty()) {
                             pe.mcc = last_mcc;
                         }
-                        pe.mnc = digits_to_string(info->plmn_Identity.mnc);
+                        pe.mnc = digits_to_string(info->plmn_Identity->mnc);
                         pe.reserved_for_operator_use =
                                 (info->cellReservedForOperatorUse ==
                                  PLMN_IdentityInfo__cellReservedForOperatorUse_reserved);
@@ -240,8 +241,7 @@ namespace lte_asn1 {
                                 sibs += "sibX";
                             }
 
-                            if (item->present ==
-                                SystemInformation_r8_IEs__sib_TypeAndInfo__Member_PR_sib4) {
+                            if (item->present == SystemInformation_r8_IEs__sib_TypeAndInfo__Member_PR_sib4) {
                                 // SIB4: intra-frequency neighbors (same EARFCN as
                                 // the serving cell → earfcn=0, filled by caller).
                                 SystemInformationBlockType4_t &s4 = item->choice.sib4;
@@ -257,15 +257,14 @@ namespace lte_asn1 {
                                         r.neighbor_freqs.push_back(nf);
                                     }
                                 }
-                            } else if (item->present ==
-                                       SystemInformation_r8_IEs__sib_TypeAndInfo__Member_PR_sib5) {
+                            } else if (item->present == SystemInformation_r8_IEs__sib_TypeAndInfo__Member_PR_sib5) {
                                 // SIB5: inter-frequency carriers. Each carrier has
                                 // its own dl-CarrierFreq (EARFCN) + a neighbor PCI
                                 // list → exact PCI→EARFCN mapping.
                                 SystemInformationBlockType5_t &s5 = item->choice.sib5;
                                 auto &carriers = s5.interFreqCarrierFreqList;
-                                for (int c = 0; c < carriers.list.count; ++c) {
-                                    InterFreqCarrierFreqInfo_t *ci = carriers.list.array[c];
+                                for (int c = 0; c < carriers->list.count; ++c) {
+                                    InterFreqCarrierFreqInfo_t *ci = carriers->list.array[c];
                                     if (!ci) continue;
                                     uint32_t earfcn =
                                             static_cast<uint32_t>(ci->dl_CarrierFreq);
@@ -297,11 +296,11 @@ namespace lte_asn1 {
             auto &mib = msg->message;
             MibFields f;
             static const uint8_t bw_to_rb[6] = {6, 15, 25, 50, 75, 100};
-            long bw = mib.dl_Bandwidth;
+            long bw = mib->dl_Bandwidth;
             if (bw >= 0 && bw < 6) f.dl_bandwidth_rb = bw_to_rb[bw];
-            if (mib.systemFrameNumber.size >= 1) f.sfn_msb8 = mib.systemFrameNumber.buf[0];
-            f.phich_duration = mib.phich_Config.phich_Duration;
-            f.phich_resource = mib.phich_Config.phich_Resource;
+            if (mib.systemFrameNumber.size >= 1) f.sfn_msb8 = mib->systemFrameNumber.buf[0];
+            f.phich_duration = mib->phich_Config.phich_Duration;
+            f.phich_resource = mib->phich_Config.phich_Resource;
             r.kind = PduKind::MIB;
             r.ok = true;
             r.mib = f;
@@ -320,11 +319,11 @@ namespace lte_asn1 {
                 return static_cast<int>((v - 39) / 2);
             };
             auto *msg = static_cast<UL_DCCH_Message_t *>(structure);
-            if (msg->message.present == UL_DCCH_MessageType_PR_c1 &&
-                msg->message.choice.c1.present ==
+            if (msg->message->present == UL_DCCH_MessageType_PR_c1 &&
+                msg->message->choice.c1.present ==
                         UL_DCCH_MessageType__c1_PR_measurementReport) {
                 MeasurementReport_t &mr =
-                        msg->message.choice.c1.choice.measurementReport;
+                        msg->message->choice.c1.choice.measurementReport;
                 if (mr.criticalExtensions.present ==
                             MeasurementReport__criticalExtensions_PR_c1 &&
                     mr.criticalExtensions.choice.c1.present ==
@@ -442,27 +441,27 @@ namespace lte_asn1 {
                 std::calloc(1, sizeof(BCCH_DL_SCH_Message_t));
         if (!msg) return false;
 
-        msg->message.present = BCCH_DL_SCH_MessageType_PR_c1;
-        msg->message.choice.c1.present =
+        msg->message->present = BCCH_DL_SCH_MessageType_PR_c1;
+        msg->message->choice.c1.present =
                 BCCH_DL_SCH_MessageType__c1_PR_systemInformationBlockType1;
         SystemInformationBlockType1_t &sib1 =
-                msg->message.choice.c1.choice.systemInformationBlockType1;
+                msg->message->choice.c1.choice.systemInformationBlockType1;
 
         PLMN_IdentityInfo_t *pi = (PLMN_IdentityInfo_t *)
                 std::calloc(1, sizeof(PLMN_IdentityInfo_t));
-        pi->plmn_Identity.mcc = (MCC_t *) std::calloc(1, sizeof(MCC_t));
+        pi->plmn_Identity->mcc = (MCC_t *) std::calloc(1, sizeof(MCC_t));
 
         // MCC = 250 — each digit is its own heap-allocated long*
-        if (!seq_add_int(pi->plmn_Identity.mcc->list, 2) ||
-            !seq_add_int(pi->plmn_Identity.mcc->list, 5) ||
-            !seq_add_int(pi->plmn_Identity.mcc->list, 0)) {
+        if (!seq_add_int(pi->plmn_Identity->mcc->list, 2) ||
+            !seq_add_int(pi->plmn_Identity->mcc->list, 5) ||
+            !seq_add_int(pi->plmn_Identity->mcc->list, 0)) {
             std::fprintf(stderr, "[asn1c selftest] FAIL: MCC alloc\n");
             ASN_STRUCT_FREE(asn_DEF_BCCH_DL_SCH_Message, msg);
             return false;
         }
         // MNC = 01
-        if (!seq_add_int(pi->plmn_Identity.mnc.list, 0) ||
-            !seq_add_int(pi->plmn_Identity.mnc.list, 1)) {
+        if (!seq_add_int(pi->plmn_Identity->mnc->list, 0) ||
+            !seq_add_int(pi->plmn_Identity->mnc->list, 1)) {
             std::fprintf(stderr, "[asn1c selftest] FAIL: MNC alloc\n");
             ASN_STRUCT_FREE(asn_DEF_BCCH_DL_SCH_Message, msg);
             return false;
@@ -516,7 +515,7 @@ namespace lte_asn1 {
         // si-Periodicity ENUMERATED { rf8(0), rf16(1), rf32(2), rf64(3),
         //                              rf128(4), rf256(5), rf512(6) }
         si->si_Periodicity = 1;// rf16
-        asn_sequence_add(&sib1.schedulingInfoList.list, si);
+        asn_sequence_add(&sib1.schedulingInfoList->list, si);
 
         uint8_t enc_buf[256] = {0};
         asn_TYPE_descriptor_t *td = find_pdu_type("BCCH-DL-SCH-Message");
