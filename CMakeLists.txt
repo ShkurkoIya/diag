@@ -8,12 +8,14 @@ option(BUILD_FOR_ANDROID "Build for Android NDK (DCI/JNI Library)" OFF)
 # Мета-опция: Сборка всех сетевых модулей разом (Modern CMake Preset)
 option(BUILD_FULL_RAT "Enable all Radio Access Technologies (GSM, WCDMA, UMTS, LTE, 5G NR)" ON)
 
+# Глобальные флаги подавления варнингов компилятора GCC 14+ для бесперебойной сборки srsRAN
+add_compile_options(-Wno-error -Wno-stringop-overflow -Wno-unused-parameter -Wno-unused-variable)
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 3. ЛОКАЛЬНЫЕ ОПЦИИ СЕТЕЙ (Каскадная логика с абсолютным приоритетом)
 # ─────────────────────────────────────────────────────────────────────────────
 if(BUILD_FULL_RAT)
   # FORCE насильно перезаписывает значения в кэше CMake.
-  # Если включен FULL_RAT, то ручные флаги -DUSE_GSM=OFF будут просто проигнорированы.
   set(USE_GSM   ON  CACHE BOOL "Build with GSM (2G) parser module" FORCE)
   set(USE_WCDMA ON  CACHE BOOL "Build with WCDMA (3G) parser module" FORCE)
   set(USE_UMTS  ON  CACHE BOOL "Build with UMTS (3G RRC) parser module" FORCE)
@@ -23,8 +25,7 @@ if(BUILD_FULL_RAT)
   set(USE_ASN1C_LTE  ON CACHE BOOL "Build with asn1c-generated LTE RRC decoder" FORCE)
   set(USE_ASN1C_UMTS ON CACHE BOOL "Build with asn1c-generated UMTS/WCDMA RRC decoder" FORCE)
 else()
-  # Если FULL_RAT выключен, то включаются обычные мягкие опции,
-  # и пользователь может настраивать каждый RAT руками как хочет.
+  # Если FULL_RAT выключен, то включаются обычные мягкие опции
   option(USE_GSM   "Build with GSM (2G) parser module" OFF)
   option(USE_WCDMA "Build with WCDMA (3G) parser module" OFF)
   option(USE_UMTS  "Build with UMTS (3G RRC) parser module" OFF)
@@ -38,7 +39,7 @@ endif()
 option(USE_GSM   "Build with GSM (2G) parser module" ${USE_GSM_DEFAULT})
 option(USE_WCDMA "Build with WCDMA (3G) parser module" ${USE_WCDMA_DEFAULT})
 option(USE_UMTS  "Build with UMTS (3G RRC) parser module" ${USE_UMTS_DEFAULT})
-option(USE_LTE   "Build with LTE (4G) parser module" ${USE_LTE_DEFAULT})
+option(USE_LTE  "Build with LTE (4G) parser module" ${USE_LTE_DEFAULT})
 option(USE_NR    "Build with NR (5G) parser module" ${USE_NR_DEFAULT})
 
 option(USE_ASN1C_LTE  "Build with asn1c-generated LTE RRC decoder" ${USE_ASN1C_LTE_DEFAULT})

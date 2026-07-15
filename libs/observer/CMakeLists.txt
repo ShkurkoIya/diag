@@ -1,34 +1,25 @@
 cmake_minimum_required(VERSION 3.22)
+project(observer_core LANGUAGES CXX)
 
-# Подключаем наши декларативные макросы
-include(cmake/Asn1cCompilerSetup.cmake)
-include(cmake/Asn1cGenerator.cmake)
-include(cmake/RegisterRatModule.cmake)
-include(cmake/RegisterAsn1GenLib.cmake)
+# Запрещаем GCC ругаться на варнинги в коде
+add_compile_options(-Wno-error -Wno-stringop-overflow)
 
-# 1. БЕЗОПАСНЫЕ ОПЦИИ ИЗОЛЯЦИИ (Включаются ТОЛЬКО если папка libs/observer собирается отдельно)
-get_property(IS_SUBPROJECT GLOBAL PROPERTY IN_SUBPROJECT)
-if(NOT IS_SUBPROJECT)
-  project(observer_standalone LANGUAGES C CXX)
-  option(BUILD_FULL_RAT "Enable all Radio Access Technologies" ON)
-  option(USE_GSM        "Build with GSM"                      ON)
-  option(USE_WCDMA      "Build with WCDMA"                    ON)
-  option(USE_UMTS       "Build with UMTS"                     ON)
-  option(USE_LTE        "Build with LTE"                      ON)
-  option(USE_NR         "Build with NR 5G"                    ON)
-  option(USE_ASN1C_LTE  "Use asn1c for LTE"                   ON)
-  option(USE_ASN1C_UMTS "Use asn1c for UMTS"                  ON)
-endif()
+# 1. Жестко привязываем наш локальный sysroot, скопированный из srsRAN
+set(SRSRAN_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/srsran_sysroot/include")
 
-if(TARGET observer_asn1_lte)
-  add_dependencies(observer observer_asn1_lte)
-endif()
+# Точные пути к добытым изолированным библиотекам парсинга
+set(SRSRAN_ASN1_LIB    "${CMAKE_SOURCE_DIR}/srsran_sysroot/lib/librrc_asn1.a")
+set(SRSRAN_NR_ASN1_LIB "${CMAKE_SOURCE_DIR}/srsran_sysroot/lib/librrc_nr_asn1.a")
+set(SRSRAN_UTILS_LIB   "${CMAKE_SOURCE_DIR}/srsran_sysroot/lib/libasn1_utils.a")
 
-if(TARGET observer_asn1_umts)
-  add_dependencies(observer observer_asn1_umts)
-endif()
+message(STATUS "─────────────────────────────────────────────────────────────")
+message(STATUS "[srsRAN] Изолированные промышленные парсеры 3GPP подключены:")
+message(STATUS "  Headers: ${SRSRAN_INCLUDE_DIR}")
+message(STATUS "  LTE Lib: ${SRSRAN_ASN1_LIB}")
+message(STATUS "  5G  Lib: ${SRSRAN_NR_ASN1_LIB}")
+message(STATUS "─────────────────────────────────────────────────────────────")
 
-# 2. ТАРГЕТ: Статическая библиотека ядра парсеров
+# 2. ТАРГЕТ: Статическая библиотека ядра радиосканера
 add_library(observer STATIC)
 
 target_sources(observer PRIVATE
@@ -36,75 +27,37 @@ target_sources(observer PRIVATE
     qualcomm_log_parser.cpp
 )
 
-# Компиляторные флаги/generated/asn1c_umts
-target_compile_options(observer PRIVATE -Wall -Wextra -O2)
+target_compile_options(observer PRIVATE -Wall -Wextra -O3)
+target_compile_features(observer PRIVATE cxx_std_17)
 
-# НАСТРОЙКА ИНКЛЮДОВ ПО BEST PRACTICES
+# НАСТРОЙКА ИНКЛЮДОВ ЯДРА
 target_include_directories(observer
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/protocol
-        ${CMAKE_CURRENT_BINARY_DIR}/generated/asn1c_lte
-        ${CMAKE_CURRENT_SOURCE_DIR}/generated/asn1c_umts
+        ${SRSRAN_INCLUDE_DIR}
     PUBLIC
-        # Позволяет писать #include "libs/observer/protocol/diagcmd.h" в приложениях
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/protocol>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
 )
 
-target_link_libraries(observer PUBLIC m dl)
+# ЛИНКОВКА: Привязываем чистые ASN1 библиотеки напрямую файлами!
+target_link_libraries(observer
+    PUBLIC
+        ${SRSRAN_ASN1_LIB}
+        ${SRSRAN_NR_ASN1_LIB}
+        ${SRSRAN_UTILS_LIB}
+    PRIVATE
+        m dl
+)
+
 add_library(observer::core ALIAS observer)
 
-# 3. ДЕКЛАРАТИВНОЕ ПОДКЛЮЧЕНИЕ МОДУЛЕЙ ТЕХНОЛОГИЙ (RAT)
+# Локальные ручные модули автора (2G/3G)
+include(cmake/RegisterRatModule.cmake)
 register_rat_module("gsm"   CONDITION USE_GSM   DEFINE FEATURE_GSM   SOURCES gsm/diag_gsm_log_parser.cpp)
 register_rat_module("wcdma" CONDITION USE_WCDMA DEFINE FEATURE_WCDMA SOURCES wcdma/diag_wcdma_log_parser.cpp)
+register_rat_module("umts"  CONDITION USE_UMTS  DEFINE FEATURE_UMTS  SOURCES umts/diag_umts_log_parser.cpp umts/asn1c_umts_bridge.cpp)
+register_rat_module("lte"   CONDITION USE_LTE   DEFINE FEATURE_LTE   SOURCES lte/diag_lte_rrc_parser.cpp lte/diag_lte_nas_parser.cpp lte/diag_lte_ml1_parser.cpp lte/asn1c_lte_bridge.cpp)
 register_rat_module("nr"    CONDITION USE_NR    DEFINE FEATURE_NR    SOURCES nr/diag_nr_log_parser.cpp)
-
-register_rat_module("umts"
-    CONDITION USE_UMTS
-    DEFINE    FEATURE_UMTS
-    SOURCES
-        umts/diag_umts_log_parser.cpp
-        umts/asn1c_umts_bridge.cpp
-)
-
-register_rat_module("lte"
-    CONDITION USE_LTE
-    DEFINE    FEATURE_LTE
-    SOURCES
-        lte/diag_lte_rrc_parser.cpp
-        lte/diag_lte_nas_parser.cpp
-        lte/diag_lte_ml1_parser.cpp
-        lte/lte_rrc_ota_decoder.cpp
-        lte/lte_sib1_decoder.cpp
-        lte/lte_sib1_decoder_asn1c.cpp
-        lte/asn1c_lte_bridge.cpp
-)
-
-# 4. ДЕКЛАРАТИВНАЯ СБОРКА ТЯЖЕЛОГО АВТОГЕНА (ASN.1)
-register_asn1_decoder("umts"
-    CONDITION USE_UMTS AND USE_ASN1C_UMTS
-    DEFINE    USE_ASN1C_UMTS
-    ASN_FILE  asn1/UMTS-RRC-Definitions.asn
-    SOLIB_FILE umts/umts_rrc_solib.cpp
-)
-
-register_asn1_decoder("lte"
-    CONDITION USE_LTE AND USE_ASN1C_LTE
-    DEFINE    USE_ASN1C_LTE
-    ASN_FILE  asn1/EUTRA-RRC-Definitions.asn
-    SOLIB_FILE lte/lte_rrc_ota_decoder.cpp
-)
-
-if(TARGET observer_asn1_lte)
-  add_dependencies(observer observer_asn1_lte)
-  target_link_libraries(observer PRIVATE observer_asn1_lte)
-endif()
-
-# if(TARGET observer_asn1_umts)
-#   add_dependencies(observer observer_asn1_umts)
-#   target_link_libraries(observer PRIVATE observer_asn1_umts)
-# endif()
-
-if(TARGET asn1c_host_compiler)
-  add_dependencies(observer asn1c_host_compiler)
-endif()

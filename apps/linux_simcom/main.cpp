@@ -13,7 +13,7 @@
 #include "serial_port.h"
 #include "serial_port_stream.h"
 
-#include "parsers/qualcomm_log_parser.h"
+#include "qualcomm_log_parser.h"
 
 static std::atomic<bool> g_running{true};
 static void on_signal(int sig) {
