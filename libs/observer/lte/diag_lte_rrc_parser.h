@@ -4,6 +4,7 @@
 
 #include <unordered_map>
 #include <vector>
+#include <cstdint>
 #include <functional>
 
 // Нативные коды логов Qualcomm

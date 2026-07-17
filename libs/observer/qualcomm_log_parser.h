@@ -25,7 +25,7 @@ enum class Rat {
     WCDMA,
     UMTS,
     NR,
-    LTE_RRC,// ★ NEW
+    LTE_RRC,
     LTE_NAS,
     LTE,// ML1 measurements
     UNKNOWN
